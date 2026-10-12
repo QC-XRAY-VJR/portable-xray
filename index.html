@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Portable X-ray · ระบบติดตามเครื่องเอกซเรย์เคลื่อนที่</title>
+  <meta name="description" content="ระบบบริหารจัดการและติดตามตำแหน่งเครื่องเอกซเรย์เคลื่อนที่ (Portable X-ray) แบบเรียลไทม์ พร้อมผังตึก 3D">
+  <meta name="theme-color" content="#0b6f66">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192x192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Portable X-ray">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="config.js"></script>
+  <style>
+    :root { --teal: #0f9d8a; --teal-dark: #0b4f49; --amber: #ffb020; --bg: #f3f7f6; --text: #17323a; --muted: #5d7379; --card: #ffffff; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0f2a28; --text: #e7f3f1; --muted: #a9c3bf; --card: #16383a; } }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: "Sarabun", -apple-system, "Segoe UI", Tahoma, sans-serif; }
+    #app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: var(--bg); }
+    /* หน้ารอโหลด */
+    #splash { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; background: var(--bg); z-index: 5; transition: opacity .35s; text-align: center; }
+    #splash.hide { opacity: 0; pointer-events: none; }
+    #splash img { width: min(440px, 86vw); height: auto; }
+    .dots { display: flex; gap: 8px; }
+    .dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--teal); animation: b 1s infinite ease-in-out; }
+    .dots span:nth-child(2) { animation-delay: .15s; } .dots span:nth-child(3) { animation-delay: .3s; background: var(--amber); }
+    @keyframes b { 0%, 80%, 100% { transform: scale(.6); opacity: .5; } 40% { transform: scale(1); opacity: 1; } }
+    .msg { color: var(--muted); font-size: 15px; max-width: 520px; line-height: 1.6; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer; background: var(--teal); color: #fff; text-decoration: none; }
+    .btn.ghost { background: transparent; color: var(--teal); border: 1px solid var(--teal); }
+    /* ปุ่มติดตั้งแอป / คำแนะนำ iPhone */
+    #install { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 6; display: none; box-shadow: 0 8px 24px rgba(11, 79, 73, .3); }
+    #ios { position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 6; display: none; background: var(--card); color: var(--text); border-radius: 16px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, .2); font-size: 15px; line-height: 1.5; }
+    #ios b { color: var(--teal); }
+    #ios button { float: right; border: 0; background: transparent; color: var(--muted); font-size: 20px; cursor: pointer; margin: -6px -6px 0 8px; }
+    #offline { position: fixed; top: 0; left: 0; right: 0; z-index: 7; display: none; background: #b45309; color: #fff; text-align: center; padding: 8px; font-size: 14px; }
+    @media (max-width: 480px) { #install { left: 16px; justify-content: center; } }
+  </style>
+</head>
+<body>
+  <div id="offline">ไม่มีการเชื่อมต่ออินเทอร์เน็ต — ระบบจะกลับมาทำงานเมื่อออนไลน์</div>
+  <div id="splash">
+    <img src="logo/logo-light.png" alt="Portable X-ray · ระบบติดตามเครื่องเอกซเรย์เคลื่อนที่" id="splashLogo">
+    <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="msg" id="splashMsg">กำลังเปิดระบบ...</div>
+    <div id="splashActions"></div>
+  </div>
+  <iframe id="app" title="Portable X-ray" allow="camera; microphone; fullscreen; clipboard-read; clipboard-write; geolocation"></iframe>
+  <button class="btn" id="install" type="button">ติดตั้งแอป Portable X-ray</button>
+  <div id="ios" role="dialog" aria-label="วิธีติดตั้งบน iPhone/iPad"><button type="button" aria-label="ปิด" id="iosClose">×</button>
+    ติดตั้งเป็นแอปบน iPhone/iPad: แตะปุ่ม <b>แชร์</b> (สี่เหลี่ยมมีลูกศรขึ้น) แล้วเลือก <b>เพิ่มไปยังหน้าจอโฮม</b></div>
+  <script>
+    (function () {
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () { /* ข้าม */ }); // ติดตั้งเป็นแอปได้
+      var C = window.PXR_CONFIG || {}, frame = document.getElementById('app'), splash = document.getElementById('splash');
+      var msg = document.getElementById('splashMsg'), actions = document.getElementById('splashActions');
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.getElementById('splashLogo').src = 'logo/logo-dark.png';
+      var url = String(C.appUrl || '');
+      if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(url) || /ใส่รหัส/.test(url)) {
+        msg.innerHTML = 'ยังไม่ได้ตั้งค่าลิงก์ระบบ — แก้ไฟล์ <b>config.js</b> ใส่ Web app URL ของ Apps Script (ลงท้ายด้วย /exec)';
+        document.querySelector('.dots').style.display = 'none';
+        return;
+      }
+      // ส่งพารามิเตอร์ต่อให้ระบบ เช่น ?view=ward
+      var q = location.search.replace(/^\?/, '');
+      var target = url + (q ? (url.indexOf('?') >= 0 ? '&' : '?') + q : '');
+      var loaded = false;
+      frame.addEventListener('load', function () { loaded = true; splash.classList.add('hide'); });
+      frame.src = target;
+      setTimeout(function () {
+        if (loaded) return;
+        msg.textContent = 'ระบบใช้เวลาโหลดนานกว่าปกติ หรือเบราว์เซอร์ไม่อนุญาตให้เปิดในหน้านี้';
+        actions.innerHTML = '<a class="btn" href="' + target + '" target="_blank" rel="noopener">เปิดระบบในแท็บใหม่</a> <button class="btn ghost" type="button" onclick="location.reload()">ลองอีกครั้ง</button>';
+      }, (C.slowAfterSec || 25) * 1000);
+
+      // ออฟไลน์
+      var off = document.getElementById('offline');
+      function net() { off.style.display = navigator.onLine ? 'none' : 'block'; }
+      window.addEventListener('online', net); window.addEventListener('offline', net); net();
+
+      // ปุ่มติดตั้ง (Chrome / Edge / Android)
+      var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+      var deferred = null, btn = document.getElementById('install');
+      window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; if (!standalone) btn.style.display = 'inline-flex'; });
+      btn.addEventListener('click', function () { if (!deferred) return; deferred.prompt(); deferred.userChoice.then(function () { deferred = null; btn.style.display = 'none'; }); });
+      window.addEventListener('appinstalled', function () { btn.style.display = 'none'; });
+
+      // คำแนะนำติดตั้งบน iPhone/iPad (Safari ไม่มีปุ่มติดตั้งอัตโนมัติ) — แสดงครั้งเดียวต่อเครื่อง
+      var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      var seen = false; try { seen = localStorage.getItem('pxr-ios-hint') === '1'; } catch (e) { seen = false; }
+      if (ios && !standalone && !seen) document.getElementById('ios').style.display = 'block';
+      document.getElementById('iosClose').addEventListener('click', function () {
+        document.getElementById('ios').style.display = 'none'; try { localStorage.setItem('pxr-ios-hint', '1'); } catch (e) { /* ข้าม */ }
+      });
+
+    })();
+  </script>
+</body>
+</html>
